@@ -46,7 +46,7 @@ lerobot/smolvla_base
 best checkpoint（013408）
         │  冻结
         ▼
-PPO 残差（4 维动作，TCP 每步 ≤3 mm）→ 固定 seed 闭环评测
+PPO 残差（32 维观测 → 6 维增量）→ 固定 seed 闭环评测
 ```
 
 ### 1. 场景与专家
@@ -85,9 +85,7 @@ lerobot/smolvla_base
 
 ### 4. PPO 残差
 
-基座 SmolVLA 冻结、不出梯度；残差网络每步输出 4 维动作 `(dx, dy, dz, gripper)`。前三维修 TCP 位移，默认每步最多 3 mm，用 MuJoCo 雅可比换成 5 个臂关节的增量；夹爪通道最多改 0.05 rad。
-
-残差观测 33 维：6 关节角 + 7 TCP 位姿 + 7 目标方块位姿 + 3 相对位置 + 6 基座动作 + 4 上一步残差。残差窗口在 TCP 的 xy 进入方块 40 mm 内打开；夹住后 30 步、或基座开始合爪后 60 步关闭。
+基座 SmolVLA 冻结、不出梯度；残差网络读 32 维观测，每步输出 6 维增量：5 个臂关节各 ±2°，夹爪 0.15 rad。残差在合爪后 60 步内生效，抬升和放置仍由基座策略执行。
 
 奖励由 grasping、task_objective、completion_bonus、势能差分和残差惩罚组成；PPO 用 stable-baselines3，`VecNormalize` 保存观测统计量，评测时使用确定性均值和同一份统计量。
 
@@ -273,7 +271,7 @@ S5 计划 5 epoch，实际取 3 epoch 的 `014670`；S6 训 2 epoch，best 为 `
 
 ## 演示媒体
 
-GitHub 不能内嵌播放 mp4，点封面图会打开原始视频文件。失败样例保留，便于对照。
+下表中的 GIF 会直接在 README 里循环播放；每行末尾有对应的完整 mp4。失败样例保留，便于对照。
 
 ### 场景与采集
 
@@ -292,18 +290,18 @@ GitHub 不能内嵌播放 mp4，点封面图会打开原始视频文件。失败
 
 ### 专家演示
 
-| 视频 | 说明 |
+| 预览 | 这一段发生了什么 |
 |---|---|
-| [**专家重抓（rgb）**](docs/media/expert_retry_rgb.mp4) | 故意抓空 → 张开 → 重抓，整套数据里唯一的重抓分支。 |
-| [**同布局换色（gbr）**](docs/media/expert_retry_gbr.mp4) | 同一 seed、同一目标槽，只有指令里的颜色词不同。 |
+| ![专家重抓 rgb](docs/media/gifs/expert_retry_rgb.gif) | **专家重抓（rgb）**：指令是 `rgb: pick up the red cube`。先朝方块旁边的空位下扎、合爪抓空，张开后重新对准红色方块抓取并抬起。[完整 mp4](docs/media/expert_retry_rgb.mp4) |
+| ![同布局换色 gbr](docs/media/gifs/expert_retry_gbr.gif) | **同布局换色（gbr）**：与左边同一份物体摆位，配色轮换成 gbr、指令词改成 green；动作序列不变，只是目标换成绿色方块。[完整 mp4](docs/media/expert_retry_gbr.mp4) |
 
 ### 策略 rollout
 
-| 视频 | 说明 |
+| 预览 | 这一段发生了什么 |
 |---|---|
-| [**SmolVLA 闭环成功（green）**](docs/media/policy_green_success.mp4) | seed 10000，默认色 green。 |
-| [**SmolVLA 闭环失败（blue）**](docs/media/policy_blue_failure.mp4) | 同一 checkpoint，指令改 blue：未成功，展示颜色泛化的边界。 |
-| [**PPO 残差基座（red）**](docs/media/base_policy_red_success.mp4) | seed 10003，red，成功。 |
+| ![成功 green](docs/media/gifs/policy_green_success.gif) | **SmolVLA 闭环成功（green）**：seed 10000、默认色 green。机械臂从悬停位下探，夹住绿色方块并抬离桌面，判成功。[完整 mp4](docs/media/policy_green_success.mp4) |
+| ![失败 blue](docs/media/gifs/policy_blue_failure.gif) | **SmolVLA 闭环失败（blue）**：同一 checkpoint、指令改 blue。模型夹起的是绿色方块，目标颜色不对，判失败；片段长 30 秒，对应 900 步评测上限。[完整 mp4](docs/media/policy_blue_failure.mp4) |
+| ![PPO 基座 red](docs/media/gifs/base_policy_red_success.gif) | **PPO 残差基座（red）**：seed 10003、red、零残差基线的对照。悬停、下探、夹住红色方块后抬起，作为 PPO 残差成功率的基线。[完整 mp4](docs/media/base_policy_red_success.mp4) |
 
 ## 边界与已知问题
 
@@ -311,7 +309,6 @@ GitHub 不能内嵌播放 mp4，点封面图会打开原始视频文件。失败
 - 本地单任务线和主链路的状态/动作口径不同，不能直接混训。
 - 非默认颜色指令成功率为 82%，颜色泛化仍是主要短板；失败样例在媒体区保留了 blue 的一条。
 - PPO 残差直接读 MuJoCo 里的目标方块位姿和 TCP 位姿，这是仿真特权信息；上真机需要额外的视觉估计。
-- 本地单任务线的脚本专家在当前平桌面场景上有回归（`smoke_expert.py` 可能报 0/5）；主链路 `so101_nexus` 的数据与评测不受影响。
 - `teleop_collect.py` 依赖 Windows 的 Win32 输入和 OpenCV 窗口，只在 Windows 下运行。
 - 数据集、checkpoint、日志不随仓库发布；运行前按环境修改 `paths.py` 和 `_ref/_launch_*.sh` 中的路径。
 
