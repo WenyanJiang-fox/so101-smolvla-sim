@@ -268,7 +268,7 @@ PROJECT_ROOT=$PWD python _ref/eval_residual_ppo.py --model residual_runs/<base_t
 
 S5 计划 5 epoch，实际取 3 epoch 的 `014670`；S6 训 2 epoch，best 为 `013408`。训练脚本设 `n_action_steps=10`；它是推理参数，不进 loss。
 
-简历口径的「20 万步后全量解冻」指 cf_retry 主阶段：S1–S3 是同一轮里 `020000 → 100000 → 200000` 的续训，合计 20 万步；S4 是 colors 专家续训 24,500 步（仍冻结视觉塔），S5 才全量解冻。
+这里的「20 万步后全量解冻」指 cf_retry 主阶段：S1–S3 是同一轮里 `020000 → 100000 → 200000` 的续训，合计 20 万步；S4 是 colors 专家续训 24,500 步（仍冻结视觉塔），S5 才全量解冻。
 
 数据集和权重不随仓库发布。按上面的采集/训练脚本重采、重训，或把已有 checkpoint 放到 `checkpoints/<step>/pretrained_model`。
 
