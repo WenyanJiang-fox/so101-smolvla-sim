@@ -308,7 +308,7 @@ S5 计划 5 epoch，实际取 3 epoch 的 `014670`；S6 训 2 epoch，best 为 `
 
 ## 边界与已知问题
 
-- 本仓库只覆盖仿真；真机链路在 [真机自动化采集策略仓库](https://github.com/comradejiang/so101-real-harness)。
+- 本仓库只覆盖仿真；真机链路在 [真机自动化采集策略仓库](https://github.com/WenyanJiang-fox/so101-real-automation)。
 - 本地单任务线和主链路的状态/动作口径不同，不能直接混训。
 - 非默认颜色指令成功率为 82%，颜色泛化仍是主要短板；失败样例在媒体区保留了 blue 的一条。
 - PPO 残差直接读 MuJoCo 里的目标方块位姿和 TCP 位姿，这是仿真特权信息；上真机需要额外的视觉估计。
