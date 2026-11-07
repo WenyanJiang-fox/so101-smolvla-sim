@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SmolVLA 仿真场景：平桌面 + 一个方块 + 一个绿色目标区。
+
+  为什么是平桌面（2026-09-11 改）：
+  原来这里是两个窄柱（取件柱 + 放置台），因为夹爪下端的碰撞体比 grasp_point
+  还低约 64mm，平桌上从正上方够不到方块。但窄柱场景**真机上不存在**，采出来
+  的数据对真机没有迁移价值。真机是「机械臂夹在桌边、方块直接放桌面上」，
+  所以这里改成平桌面，让仿真当真机的参考规格。
+
+  真机几何没变这个事实：SO-101 那根固定爪的手指比夹持点长 64mm，正上方硬夹
+  矮方块仍然会顶桌面。这是硬件的形状，不是仿真缺陷 —— 数据采集时从侧面/
+  斜上方夹，或者用推的，都可以。
+
+  位置约定：本文件必须与 scene.xml / so101_new_calib.xml / assets/ 同目录，
+  否则 <compiler meshdir="assets"> 会解析失败（上游模型的既有约束）。
+  几何口径与 shim 侧的 so101-smolvla-sim/paths.py 必须一致，改这里要同步改那边。
+
+  z=0 的地面就是桌面（scene.xml 自带），机械臂 base 就在桌面上 —— 对应真机的
+  「夹在桌边」。
+-->
+<mujoco model="so101_smolvla_sim">
+  <include file="scene.xml"/>
+
+  <worldbody>
+    <!-- 工作区参考点：相机用它当 lookat，也标出可达范围的中心 -->
+    <body name="workspace_center" pos="0.20 0.0 0.07">
+      <geom name="wc_geom" type="sphere" size="0.002" contype="0" conaffinity="0"
+            rgba="0 0 0 0"/>
+    </body>
+
+    <!-- 全局相机：正前方约 55cm、俯角约 52°（真机是旁边的支架）。
+         取景要同时装下两样东西，所以只能离远：整条机械臂（home 时夹爪在 z=0.23）、
+         和桌面上的工作区。拉太近机械臂就出画了 —— 遥操作时看不见夹爪等于瞎拧。
+         离得远方块就小，但精细的东西本来该由腕部相机提供。
+
+         为什么 x 必须等于 workspace_center 的 x（2026-09-11 改）：
+         原来这里是 pos="0.02 -0.30 0.46"，瞄准点却在 x=0.20 —— 方位角差了 31°，
+         屏幕水平方向于是变成「世界 x 和世界 y 的混合」。遥操作时鼠标左移，末端
+         是斜着走的，用户的原话是「机械臂好像在跟着鼠标走，而不是鼠标左移、舵机
+         相应反应」。把相机挪到瞄准点的正前方后，相机右向量精确等于 (1,0,0)，
+         视口纵轴上各点的世界 x 恒定（_solve_frontal.py 验过），鼠标左移就是纯
+         -x，动作方向和看到的完全一致。距离和 fovy 都没动。 -->
+    <camera name="front_cam" mode="targetbody" target="workspace_center"
+            pos="0.20 -0.30 0.46" fovy="52"/>
+
+    <!-- 绿色目标区：纯视觉标记，不参与碰撞 -->
+    <body name="target" pos="0.17 0.05 0.0">
+      <geom name="target_geom" type="cylinder" size="0.045 0.0008" pos="0 0 0.0008"
+            contype="0" conaffinity="0" rgba="0.15 0.9 0.25 0.55"/>
+    </body>
+
+    <!-- 待抓方块：40mm，直接坐在桌面上 -->
+    <body name="cube" pos="0.25 -0.05 0.02">
+      <freejoint/>
+      <geom name="cube_geom" type="box" size="0.02 0.02 0.02" mass="0.05"
+            friction="2.0 1.0 0.1" rgba="0.90 0.20 0.20 1"/>
+    </body>
+  </worldbody>
+
+  <option cone="elliptic" impratio="10" noslip_iterations="10"/>
+
+  <!--
+    weld 保留但恒为 inactive：MujocoServoController 会找这个名字。
+    真实摩擦抓取要求它全程关闭。
+  -->
+  <equality>
+    <weld name="grasp" body1="gripper" body2="cube" anchor="0 0 -0.04" active="false"/>
+  </equality>
+</mujoco>

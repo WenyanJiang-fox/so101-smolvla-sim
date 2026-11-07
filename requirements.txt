@@ -1,0 +1,19 @@
+# 核心链路依赖（CPU 可跑采集与评测；训练 SmolVLA 需要 CUDA）
+mujoco>=3.2
+mink>=1.0
+numpy>=1.26
+scipy
+pandas
+pyarrow
+Pillow
+av
+opencv-python
+
+# 训练/评测 SmolVLA
+torch>=2.1
+lerobot==0.6.1
+transformers
+gymnasium
+
+# 只给 _ref/ 下的并行采集脚本用（可选）：
+# so101_nexus 是内部包，见 README「数据采集」一节的说明

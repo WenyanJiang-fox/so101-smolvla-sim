@@ -1,0 +1,25 @@
+<mujoco model="grasp_scene">
+  <include file="scene.xml"/>
+
+  <worldbody>
+    <!-- 全局俯视相机（固定，侧上方斜看桌面，避开机械臂本体） -->
+    <camera name="global_cam" pos="0.2 0.25 0.5" quat="0.961249 -0.275683 0 0" fovy="60"/>
+    <!-- 待抓方块（自由体，放在地面上，4cm 立方体） -->
+    <body name="cube" pos="0.28 0.0 0.02">
+      <freejoint/>
+      <geom name="cube_geom" type="box" size="0.02 0.02 0.02" mass="0.5" friction="2.0 1.0 0.1" rgba="0.9 0.2 0.2 1"/>
+    </body>
+    <!-- 目标放置区（地面上的绿色标记 site） -->
+    <body name="target" pos="0.20 0.0 0.03">
+      <site name="target_site" size="0.03" rgba="0.2 0.9 0.2 0.5"/>
+    </body>
+  </worldbody>
+
+  <!-- 物理抓取调参：椭圆摩擦锥 + 高隐式比 + 无滑移迭代，让爪子靠摩擦力夹稳物体 -->
+  <option cone="elliptic" impratio="10" noslip_iterations="10"/>
+
+  <!-- snap-grasp：夹爪靠近方块时激活 weld，把方块焊到夹爪（程序化抓取） -->
+  <equality>
+    <weld name="grasp" body1="gripper" body2="cube" anchor="0 0 -0.04" active="false"/>
+  </equality>
+</mujoco>
