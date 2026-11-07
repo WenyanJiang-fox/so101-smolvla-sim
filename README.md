@@ -35,7 +35,7 @@
 ## 方法/流水线
 
 ```
-脚本专家 / 反事实换色 / 抓空重抓
+脚本专家 / 反事实换色 / 空抓重试
         │  LeRobot v3：parquet + mp4
         ▼
 lerobot/smolvla_base
@@ -63,7 +63,7 @@ PPO 残差（32 维观测 → 6 维增量）→ 固定 seed 闭环评测
 
 换色数据：104 个布局 × 2 套配色（`rgb` / `gbr`，循环左移）× 3 个钉住目标，共 624 次设计，实收 618 条 `so101_picklift_colors`。同一 `(seed, k)` 下两套配色的目标位置逐位相同，只有颜色词不同。
 
-抓空重抓：`RETRY=1` 时专家先朝偏移位置抓一次空的、张开、再抓真的。`rgb` 数据里 45 条（`RETRY_PROB=0.15`），`colors_retry` 里 230 条（`RETRY_PROB=0.5`）。这是整套数据里唯一带「抓空 → 张开 → 重抓」的样本。
+空抓重试：`RETRY=1` 时专家先朝偏移位置执行一次空抓，张开后再抓取真实目标。`rgb` 数据里 45 条（`RETRY_PROB=0.15`），`colors_retry` 里 230 条（`RETRY_PROB=0.5`）。这是整套数据里唯一包含「空抓 → 张开 → 重试」的样本。
 
 只保留成功 episode；失败条目用 `clear_episode_buffer()` 丢弃。无人值守单轮 6 小时约 190 条，`colors` + `colors_retry` 累计 1222 条 / 185502 帧。
 
@@ -295,15 +295,15 @@ S5 计划 5 epoch，实际取 3 epoch 的 `014670`；S6 训 2 epoch，best 为 `
 
 | 预览 | 这一段发生了什么 |
 |---|---|
-| ![专家重抓 rgb](docs/media/gifs/expert_retry_rgb.gif) | **专家重抓（rgb）**：指令是 `rgb: pick up the red cube`。先朝方块旁边的空位下扎、合爪抓空，张开后重新对准红色方块抓取并抬起。[完整 mp4](docs/media/expert_retry_rgb.mp4) |
+| ![专家重抓 rgb](docs/media/gifs/expert_retry_rgb.gif) | **专家空抓重试（rgb）**：指令是 `rgb: pick up the red cube`。先朝方块旁边的空位下探、合爪空抓，张开后重新对准红色方块抓取并抬起。[完整 mp4](docs/media/expert_retry_rgb.mp4) |
 | ![同布局换色 gbr](docs/media/gifs/expert_retry_gbr.gif) | **同布局换色（gbr）**：与左边同一份物体摆位，配色轮换成 gbr、指令词改成 green；动作序列不变，只是目标换成绿色方块。[完整 mp4](docs/media/expert_retry_gbr.mp4) |
 
 ### 策略 rollout
 
 | 预览 | 这一段发生了什么 |
 |---|---|
-| ![成功 green](docs/media/gifs/policy_green_success.gif) | **SmolVLA 闭环成功（green）**：seed 10000、默认色 green。机械臂从悬停位下探，夹住绿色方块并抬离桌面，判成功。[完整 mp4](docs/media/policy_green_success.mp4) |
-| ![失败 blue](docs/media/gifs/policy_blue_failure.gif) | **SmolVLA 闭环失败（blue）**：同一 checkpoint、指令改 blue。模型夹起的是绿色方块，目标颜色不对，判失败；片段长 30 秒，对应 900 步评测上限。[完整 mp4](docs/media/policy_blue_failure.mp4) |
+| ![成功 green](docs/media/gifs/policy_green_success.gif) | **SmolVLA 闭环成功（green）**：seed 10000、默认色 green。机械臂从悬停位下探，夹持绿色方块并抬离桌面，判定成功。[完整 mp4](docs/media/policy_green_success.mp4) |
+| ![失败 blue](docs/media/gifs/policy_blue_failure.gif) | **SmolVLA 闭环失败（blue）**：同一 checkpoint、指令改 blue。模型夹持的是绿色方块，目标颜色不对，判定失败；片段长 30 秒，对应 900 步评测上限。[完整 mp4](docs/media/policy_blue_failure.mp4) |
 | ![PPO 基座 red](docs/media/gifs/base_policy_red_success.gif) | **PPO 残差基座（red）**：seed 10003、red、零残差基线的对照。悬停、下探、夹住红色方块后抬起，作为 PPO 残差成功率的基线。[完整 mp4](docs/media/base_policy_red_success.mp4) |
 
 ## 边界与已知问题
